@@ -1,0 +1,33 @@
+version: '3.1'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gopportunities
+      TZ: America/Sao_Paulo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: go_app
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=gopportunities
+      - DB_PORT=5432
+      - TZ=America/Sao_Paulo
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
