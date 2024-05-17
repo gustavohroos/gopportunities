@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/gustavohroos/gopportunities/schemas"
 	"gorm.io/driver/postgres"
@@ -22,9 +23,21 @@ func InitializePostgres() (*gorm.DB, error) {
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s", host, user, password, dbname, port, timezone)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	var db *gorm.DB
+	var err error
+	maxRetries := 10
+
+	for i := 0; i < maxRetries; i++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err == nil {
+			break
+		}
+		logger.Errorf("Error initializing Postgres (attempt %d/%d): %v", i+1, maxRetries, err)
+		time.Sleep(2 * time.Second)
+	}
+
 	if err != nil {
-		logger.Errorf("Error initializing Postgres: %v", err)
+		logger.Errorf("Failed to initialize Postgres after %d attempts: %v", maxRetries, err)
 		fmt.Println("DSN: ", dsn)
 		return nil, err
 	}
@@ -34,5 +47,7 @@ func InitializePostgres() (*gorm.DB, error) {
 		logger.Errorf("Error migrating schema: %v", err)
 		return nil, err
 	}
+
+	logger.Info("Postgres initialized successfully")
 	return db, nil
 }
